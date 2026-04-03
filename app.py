@@ -1,20 +1,44 @@
 import streamlit as st 
 from langchain_groq import ChatGroq
 from langchain_community.utilities import ArxivAPIWrapper, WikipediaAPIWrapper
-from langchain_community.tools import ArxivQueryRun, WikipediaQueryRun, DuckDuckGoSearchRun
+from langchain_community.tools import ArxivQueryRun, WikipediaQueryRun
 from langchain.agents import create_agent
+from langchain_core.tools import tool
 from langchain_core.messages import AIMessage, ToolMessage
 import os
 from dotenv import load_dotenv
 
+@tool
+def web_search(query: str) -> str:
+    """Search the web using DuckDuckGo for current events or general questions."""
+    try:
+        resp = requests.get(
+            "https://api.duckduckgo.com/",
+            params={"q": query, "format": "json", "no_html": 1, "skip_disambig": 1},
+            timeout=10,
+        )
+        data = resp.json()
+
+        # Prefer the abstract if available
+        if data.get("AbstractText"):
+            return data["AbstractText"]
+
+        # Fall back to related topics
+        snippets = []
+        for topic in data.get("RelatedTopics", [])[:5]:
+            if isinstance(topic, dict) and "Text" in topic:
+                snippets.append(topic["Text"])
+
+        return "\n".join(snippets) if snippets else f"No results found for: {query}"
+    except Exception as e:
+        return f"Search error: {e}"
+    
 ## Arxiv and Wikipedia Tools
 api_wrapper_arxiv = ArxivAPIWrapper(top_k_results=1, doc_content_chars_max=200)
 arxiv = ArxivQueryRun(api_wrapper=api_wrapper_arxiv)
 
 api_wrapper_wiki = WikipediaAPIWrapper(top_k_results=1, doc_content_chars_max=250)
 wiki = WikipediaQueryRun(api_wrapper=api_wrapper_wiki)
-
-search=DuckDuckGoSearchRun(name="Search")
 
 st.title("🔍 LangChain - Chat with search")
 
@@ -35,7 +59,7 @@ if prompt:=st.chat_input(placeholder="What is machine learning"):
     st.chat_message("user").write(prompt)
 
     llm=ChatGroq(groq_api_key=api_key, model_name="qwen/qwen3-32b", streaming=True)
-    tools=[search, arxiv, wiki]
+    tools=[web_search, arxiv, wiki]
     search_agent = create_agent(llm, tools)
     with st.chat_message("assistant"):
         ## Stream agent steps to show thoughts & actions (like StreamlitCallbackHandler)
