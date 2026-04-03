@@ -7,6 +7,8 @@ from langchain_core.tools import tool
 from langchain_core.messages import AIMessage, ToolMessage
 import os
 from dotenv import load_dotenv
+import requests
+
 
 @tool
 def web_search(query: str) -> str:
