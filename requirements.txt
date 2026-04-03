@@ -4,8 +4,8 @@ langchain-core
 langchain-community
 langchain-groq
 langgraph
-duckduckgo-search
+duckduckgo-search>=6.0.0
 arxiv
-pymupdf
+pymupdf4llm
 wikipedia
 python-dotenv
