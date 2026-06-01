@@ -1,4 +1,5 @@
 import streamlit as st 
+import wikipedia
 from langchain_groq import ChatGroq
 from langchain_community.utilities import ArxivAPIWrapper, WikipediaAPIWrapper
 from langchain_community.tools import ArxivQueryRun, WikipediaQueryRun
@@ -41,9 +42,17 @@ def web_search(query: str) -> str:
 api_wrapper_arxiv = ArxivAPIWrapper(top_k_results=1, doc_content_chars_max=200)
 arxiv = ArxivQueryRun(api_wrapper=api_wrapper_arxiv)
 
+wikipedia.USER_AGENT = "SearchEngineLLM/1.0 (ghaidaasamir@github.com)"
 api_wrapper_wiki = WikipediaAPIWrapper(top_k_results=1, doc_content_chars_max=250)
-wiki = WikipediaQueryRun(api_wrapper=api_wrapper_wiki)
 
+@tool
+def wiki(query: str) -> str:
+    """Search Wikipedia for factual information about a topic."""
+    try:
+        return api_wrapper_wiki.run(query)
+    except Exception as e:
+        return f"Wikipedia is currently unavailable. Error: {e}"
+        
 st.title("🔍 LangChain - Chat with search")
 
 ## Sidebar for settings
